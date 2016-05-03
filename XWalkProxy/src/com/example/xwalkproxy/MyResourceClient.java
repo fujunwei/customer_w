@@ -28,7 +28,7 @@ public class MyResourceClient extends XWalkResourceClient {
     static private final int PREBUFFER_SIZE= 4*1024*1024;
     private long startTimeMills;
     String id = "";
-    private long waittime=8000;//ç­‰å¾…ç¼“å†²æ—¶é—´
+    private long waittime=8000;
 
     public MyResourceClient(XWalkView xWalkView) {
         super(xWalkView);
@@ -38,13 +38,11 @@ public class MyResourceClient extends XWalkResourceClient {
     public boolean shouldOverrideResourceLoading(XWalkView view,
             MediaPlayer mediaPlayer, Context context, Uri uri, Map<String, String> headers) {
 
-        //åˆ›å»ºé¢„åŠ è½½è§†é¢‘æ–‡ä»¶å­˜æ”¾æ–‡ä»¶å¤¹
         new File(getBufferDir()).mkdirs();
 
-        // åˆ�å§‹åŒ–ä»£ç�†æœ�åŠ¡å™¨
-        proxy = new HttpGetProxy(getBufferDir(),// é¢„åŠ è½½è§†é¢‘æ–‡ä»¶å­˜æ”¾è·¯å¾„
-                PREBUFFER_SIZE,// é¢„åŠ è½½ä½“ç§¯
-                10);// é¢„åŠ è½½æ–‡ä»¶ä¸Šé™�
+        proxy = new HttpGetProxy(getBufferDir(),
+                PREBUFFER_SIZE,
+                10);
 
         id = System.currentTimeMillis() + "";
         try {
@@ -69,23 +67,6 @@ public class MyResourceClient extends XWalkResourceClient {
         return true;
     }
 
-//    private OnPreparedListener mOnPreparedListener=new OnPreparedListener(){
-//        @Override
-//        public void onPrepared(MediaPlayer mp) {
-//            mVideoView.start();
-//            long duration=System.currentTimeMillis() - startTimeMills;
-//            Log.e(TAG,"ç­‰å¾…ç¼“å†²æ—¶é—´:"+waittime+",é¦–æ¬¡ç¼“å†²æ—¶é—´:"+duration);
-//        }
-//    };
-//
-//    private Handler delayToStartPlay = new Handler() {
-//        public void handleMessage(Message msg) {
-//            startTimeMills=System.currentTimeMillis();
-//            String proxyUrl = proxy.getLocalURL(id);
-//            mVideoView.setVideoPath(proxyUrl);
-//        }
-//    };
-//
     static public String getBufferDir(){
         String bufferDir = Environment.getExternalStorageDirectory()
                 .getAbsolutePath() + "/ProxyBuffer/files";

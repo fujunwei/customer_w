@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.app.ActionBar;
 import android.app.Fragment;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -17,6 +18,7 @@ import org.xwalk.core.XWalkView;
 public class MainActivity extends Activity {
 	private XWalkView mXWalkView;
     final static  String TAG = "fujunwei";
+    private final static int LOAD_URL = 100;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -27,8 +29,19 @@ public class MainActivity extends Activity {
 			getFragmentManager().beginTransaction()
 					.add(R.id.container, new PlaceholderFragment()).commit();
 		}
-		
+
+		mHandler.sendEmptyMessageDelayed(LOAD_URL, 100);
 	}
+	
+	private Handler mHandler = new Handler() {
+		@Override  
+        public void handleMessage(android.os.Message msg) {  
+			if(msg.what == LOAD_URL) {
+				mXWalkView = (XWalkView) findViewById(R.id.xwalkWebView);
+				mXWalkView.load("file:///android_asset/index.html", null);
+			}
+		}
+	};
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -45,11 +58,9 @@ public class MainActivity extends Activity {
 		// as you specify a parent activity in AndroidManifest.xml.
 		int id = item.getItemId();
 		if (id == R.id.action_settings) {
-			createXWalkView();
-			
 			String[] a = {"*.intel.com"};
             mXWalkView.proxySettingsChanged("122.96.25.242", 9396, "", a);
-            mXWalkView.load("file:///android_asset/index.html", null);
+	        mXWalkView.setResourceClient(new MyResourceClient(mXWalkView));
             
 			return true;
 		}
@@ -69,16 +80,8 @@ public class MainActivity extends Activity {
 				Bundle savedInstanceState) {
 			View rootView = inflater.inflate(R.layout.fragment_main, container,
 					false);
-//			createXWalkView();
 			return rootView;
 		}
 	}
 	
-	private void createXWalkView() {
-		if (mXWalkView == null) {
-			mXWalkView = (XWalkView) findViewById(R.id.xwalkWebView);
-	        mXWalkView.setResourceClient(new MyResourceClient(mXWalkView));
-		}
-	}
-
 }
