@@ -34,38 +34,38 @@ public class MyResourceClient extends XWalkResourceClient {
         super(xWalkView);
     }
 
-    @Override
-    public boolean shouldOverrideResourceLoading(XWalkView view,
-            MediaPlayer mediaPlayer, Context context, Uri uri, Map<String, String> headers) {
-
-        new File(getBufferDir()).mkdirs();
-
-        proxy = new HttpGetProxy(getBufferDir(),
-                PREBUFFER_SIZE,
-                10);
-
-        id = System.currentTimeMillis() + "";
-        try {
-            proxy.startDownload(id, uri.toString(), true);
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-//        delayToStartPlay.sendEmptyMessageDelayed(0, waittime);
+//    @Override
+//    public boolean shouldOverrideResourceLoading(XWalkView view,
+//            MediaPlayer mediaPlayer, Context context, Uri uri, Map<String, String> headers) {
 //
-//        mediaPlayer.setOnPreparedListener(mOnPreparedListener);
-
-        String proxyUrl = proxy.getLocalURL(id);
-        Uri localUri = Uri.parse(proxyUrl);
-        try {
-            mediaPlayer.setDataSource(context, localUri, headers);
-        } catch (IOException e) {
-            Log.e(TAG, "Media player set data source failed : " + e);
-        }
-
-        return true;
-    }
+//        new File(getBufferDir()).mkdirs();
+//
+//        proxy = new HttpGetProxy(getBufferDir(),
+//                PREBUFFER_SIZE,
+//                10);
+//
+//        id = System.currentTimeMillis() + "";
+//        try {
+//            proxy.startDownload(id, uri.toString(), true);
+//        } catch (Exception e) {
+//            // TODO Auto-generated catch block
+//            e.printStackTrace();
+//        }
+//
+////        delayToStartPlay.sendEmptyMessageDelayed(0, waittime);
+////
+////        mediaPlayer.setOnPreparedListener(mOnPreparedListener);
+//
+//        String proxyUrl = proxy.getLocalURL(id);
+//        Uri localUri = Uri.parse(proxyUrl);
+//        try {
+//            mediaPlayer.setDataSource(context, localUri, headers);
+//        } catch (IOException e) {
+//            Log.e(TAG, "Media player set data source failed : " + e);
+//        }
+//
+//        return true;
+//    }
 
     static public String getBufferDir(){
         String bufferDir = Environment.getExternalStorageDirectory()

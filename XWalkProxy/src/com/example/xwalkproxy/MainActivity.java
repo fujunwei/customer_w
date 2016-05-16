@@ -59,8 +59,13 @@ public class MainActivity extends Activity {
 		int id = item.getItemId();
 		if (id == R.id.action_settings) {
 			String[] a = {"*.intel.com"};
-            mXWalkView.proxySettingsChanged("122.96.25.242", 9396, "", a);
-	        mXWalkView.setResourceClient(new MyResourceClient(mXWalkView));
+            mXWalkView.proxySettingsChanged("122.96.25.242", 9399, "", a);
+//	        mXWalkView.setResourceClient(new MyResourceClient(mXWalkView));
+            
+            // ExoMediaPlayer
+            XWalkExoMediaPlayer mXWalkExoMediaPlayer = new XWalkExoMediaPlayer(this, mXWalkView);
+            mXWalkExoMediaPlayer.updateProxySetting("122.96.25.242", 9399);
+            mXWalkView.setExMediaPlayer(mXWalkExoMediaPlayer);
             
 			return true;
 		}
