@@ -43,4 +43,5 @@
 <string name="date_picker_dialog_clear">"پاک کردن"</string>
 <string name="autofill_popup_content_description">"نمایش پنجره تکمیل خودکار"</string>
 <string name="password_generation_popup_content_description">"نمایش پنجره تولید گذرواژه"</string>
+<string name="autofill_keyboard_accessory_content_description">"پیشنهادهایی در دسترس هستند"</string>
 </resources>

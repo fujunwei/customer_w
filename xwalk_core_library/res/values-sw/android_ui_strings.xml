@@ -17,7 +17,7 @@
 <string name="color_picker_button_yellow">"Manjano"</string>
 <string name="color_picker_button_black">"Nyeusi"</string>
 <string name="color_picker_button_white">"Nyeupe"</string>
-<string name="copy_to_clipboard_failure_message">"Ilishindwa kunakiliwa kwenda kwenye ubao klipu."</string>
+<string name="copy_to_clipboard_failure_message">"Imeshindwa kuongeza kwenye ubao wa kunakili."</string>
 <string name="accessibility_date_picker_month">"Mwezi"</string>
 <string name="accessibility_date_picker_year">"Mwaka"</string>
 <string name="date_picker_dialog_set">"Weka"</string>
@@ -43,4 +43,5 @@
 <string name="date_picker_dialog_clear">"Futa"</string>
 <string name="autofill_popup_content_description">"Inaonyesha dirisha ibukizi la kujaza otomatiki"</string>
 <string name="password_generation_popup_content_description">"Inaonyesha dirisha ibukizi la uundaji wa nenosiri"</string>
+<string name="autofill_keyboard_accessory_content_description">"Mapendekezo yanapatikana"</string>
 </resources>
