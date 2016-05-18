@@ -14,12 +14,17 @@ import android.view.ViewGroup;
 import android.os.Build;
 
 import org.xwalk.core.XWalkView;
+import com.google.android.exoplayer.audio.AudioCapabilities;
+import com.google.android.exoplayer.audio.AudioCapabilitiesReceiver;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements AudioCapabilitiesReceiver.Listener {
 	private XWalkView mXWalkView;
     final static  String TAG = "fujunwei";
     private final static int LOAD_URL = 100;
 
+    XWalkExoMediaPlayer mXWalkExoMediaPlayer;
+    private AudioCapabilitiesReceiver audioCapabilitiesReceiver;
+    
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -31,6 +36,9 @@ public class MainActivity extends Activity {
 		}
 
 		mHandler.sendEmptyMessageDelayed(LOAD_URL, 100);
+		
+		audioCapabilitiesReceiver = new AudioCapabilitiesReceiver(this, this);
+        audioCapabilitiesReceiver.register();
 	}
 	
 	private Handler mHandler = new Handler() {
@@ -42,6 +50,14 @@ public class MainActivity extends Activity {
 			}
 		}
 	};
+	
+	// AudioCapabilitiesReceiver.Listener methods
+
+    @Override
+    public void onAudioCapabilitiesChanged(AudioCapabilities audioCapabilities) {
+        mXWalkExoMediaPlayer.releasePlayer();
+        mXWalkExoMediaPlayer.preparePlayer(true);
+    }
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -63,8 +79,8 @@ public class MainActivity extends Activity {
 //	        mXWalkView.setResourceClient(new MyResourceClient(mXWalkView));
             
             // ExoMediaPlayer
-            XWalkExoMediaPlayer mXWalkExoMediaPlayer = new XWalkExoMediaPlayer(this, mXWalkView);
-            mXWalkExoMediaPlayer.updateProxySetting("122.96.25.242", 9399);
+            mXWalkExoMediaPlayer = new XWalkExoMediaPlayer(this, mXWalkView);
+            mXWalkExoMediaPlayer.updateProxySetting("140.207.47.119", 10010);
             mXWalkView.setExMediaPlayer(mXWalkExoMediaPlayer);
             
 			return true;
