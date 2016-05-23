@@ -1,8 +1,2 @@
 eclipse.preferences.version=1
-encoding//src/com/example/socketproxy/Config.java=UTF-8
-encoding//src/com/example/socketproxy/DownloadThread.java=UTF-8
-encoding//src/com/example/socketproxy/HttpGetProxyUtils.java=UTF-8
-encoding//src/com/example/socketproxy/HttpParser.java=UTF-8
-encoding//src/com/example/socketproxy/Utils.java=UTF-8
-encoding//src/com/example/xwalkproxy/MyResourceClient.java=UTF-8
 encoding/<project>=UTF-8

@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.example.xwalkproxy;
+package org.example.xwalkembedded;
 
 import com.google.android.exoplayer.ExoPlayer;
 import com.google.android.exoplayer.MediaCodecTrackRenderer.DecoderInitializationException;
 import com.google.android.exoplayer.TimeRange;
 import com.google.android.exoplayer.audio.AudioTrack;
 import com.google.android.exoplayer.chunk.Format;
-import com.example.player.DemoPlayer;
+import org.example.player.DemoPlayer;
 import com.google.android.exoplayer.util.VerboseLogUtil;
 
 import android.media.MediaCodec.CryptoException;

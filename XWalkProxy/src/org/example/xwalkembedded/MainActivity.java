@@ -1,4 +1,4 @@
-package com.example.xwalkproxy;
+package org.example.xwalkembedded;
 
 import android.app.Activity;
 

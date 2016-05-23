@@ -1,4 +1,4 @@
-package com.example.socketproxy;
+package org.example.socketproxy;
 
 import java.io.File;
 import java.io.FileInputStream;

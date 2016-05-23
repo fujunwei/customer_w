@@ -1,11 +1,11 @@
-package com.example.socketproxy;
+package org.example.socketproxy;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.example.socketproxy.Config.ProxyRequest;
-import com.example.socketproxy.Config.ProxyResponse;
+import org.example.socketproxy.Config.ProxyRequest;
+import org.example.socketproxy.Config.ProxyResponse;
 
 
 import android.text.TextUtils;

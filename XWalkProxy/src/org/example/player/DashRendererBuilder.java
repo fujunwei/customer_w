@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.example.player;
+package org.example.player;
 
 import com.google.android.exoplayer.DefaultLoadControl;
 import com.google.android.exoplayer.LoadControl;
@@ -25,21 +25,25 @@ import com.google.android.exoplayer.audio.AudioCapabilities;
 import com.google.android.exoplayer.chunk.ChunkSampleSource;
 import com.google.android.exoplayer.chunk.ChunkSource;
 import com.google.android.exoplayer.chunk.FormatEvaluator.AdaptiveEvaluator;
-import com.example.player.DemoPlayer.RendererBuilder;
-import com.google.android.exoplayer.drm.DrmSessionManager;
+import com.google.android.exoplayer.dash.DashChunkSource;
+import com.google.android.exoplayer.dash.DefaultDashTrackSelector;
+import com.google.android.exoplayer.dash.mpd.AdaptationSet;
+import com.google.android.exoplayer.dash.mpd.MediaPresentationDescription;
+import com.google.android.exoplayer.dash.mpd.MediaPresentationDescriptionParser;
+import com.google.android.exoplayer.dash.mpd.Period;
+import com.google.android.exoplayer.dash.mpd.UtcTimingElement;
+import com.google.android.exoplayer.dash.mpd.UtcTimingElementResolver;
+import com.google.android.exoplayer.dash.mpd.UtcTimingElementResolver.UtcTimingCallback;
+import org.example.player.DemoPlayer.RendererBuilder;
 import com.google.android.exoplayer.drm.MediaDrmCallback;
 import com.google.android.exoplayer.drm.StreamingDrmSessionManager;
 import com.google.android.exoplayer.drm.UnsupportedDrmException;
-import com.google.android.exoplayer.smoothstreaming.DefaultSmoothStreamingTrackSelector;
-import com.google.android.exoplayer.smoothstreaming.SmoothStreamingChunkSource;
-import com.google.android.exoplayer.smoothstreaming.SmoothStreamingManifest;
-import com.google.android.exoplayer.smoothstreaming.SmoothStreamingManifestParser;
 import com.google.android.exoplayer.text.TextTrackRenderer;
 import com.google.android.exoplayer.upstream.DataSource;
 import com.google.android.exoplayer.upstream.DefaultAllocator;
 import com.google.android.exoplayer.upstream.DefaultBandwidthMeter;
-import com.google.android.exoplayer.upstream.DefaultHttpDataSource;
 import com.google.android.exoplayer.upstream.DefaultUriDataSource;
+import com.google.android.exoplayer.upstream.UriDataSource;
 import com.google.android.exoplayer.util.ManifestFetcher;
 import com.google.android.exoplayer.util.Util;
 
@@ -47,20 +51,27 @@ import android.content.Context;
 import android.media.AudioManager;
 import android.media.MediaCodec;
 import android.os.Handler;
+import android.util.Log;
 
 import java.io.IOException;
 import java.util.Map;
 
 /**
- * A {@link RendererBuilder} for SmoothStreaming.
+ * A {@link RendererBuilder} for DASH.
  */
-public class SmoothStreamingRendererBuilder implements RendererBuilder {
+public class DashRendererBuilder implements RendererBuilder {
+
+  private static final String TAG = "DashRendererBuilder";
 
   private static final int BUFFER_SEGMENT_SIZE = 64 * 1024;
   private static final int VIDEO_BUFFER_SEGMENTS = 200;
   private static final int AUDIO_BUFFER_SEGMENTS = 54;
   private static final int TEXT_BUFFER_SEGMENTS = 2;
   private static final int LIVE_EDGE_LATENCY_MS = 30000;
+
+  private static final int SECURITY_LEVEL_UNKNOWN = -1;
+  private static final int SECURITY_LEVEL_1 = 1;
+  private static final int SECURITY_LEVEL_3 = 3;
 
   private final Context context;
   private final String url;
@@ -72,21 +83,20 @@ public class SmoothStreamingRendererBuilder implements RendererBuilder {
 
   private AsyncRendererBuilder currentAsyncBuilder;
 
-  public SmoothStreamingRendererBuilder(Context context, Map<String, String> headers, String url,
-      MediaDrmCallback drmCallback, String proxyHost, int proxyPort) {
+  public DashRendererBuilder(Context context, Map<String, String> headers, String url,
+                             MediaDrmCallback drmCallback, String proxyHost, int proxyPort) {
     this.context = context;
-    this.url = Util.toLowerInvariant(url).endsWith("/manifest") ? url : url + "/Manifest";
+    this.headers = headers;
+    this.url = url;
     this.drmCallback = drmCallback;
 
     this.proxyHost = proxyHost;
     this.proxyPort = proxyPort;
-    this.headers = headers;
   }
 
   @Override
   public void buildRenderers(DemoPlayer player) {
-    currentAsyncBuilder = new AsyncRendererBuilder(context, headers, url, drmCallback, player,
-            proxyHost, proxyPort);
+    currentAsyncBuilder = new AsyncRendererBuilder(context, headers, url, drmCallback, player, proxyHost, proxyPort);
     currentAsyncBuilder.init();
   }
 
@@ -99,31 +109,34 @@ public class SmoothStreamingRendererBuilder implements RendererBuilder {
   }
 
   private static final class AsyncRendererBuilder
-      implements ManifestFetcher.ManifestCallback<SmoothStreamingManifest> {
+      implements ManifestFetcher.ManifestCallback<MediaPresentationDescription>, UtcTimingCallback {
 
     private final Context context;
+    private Map<String, String> headers;
     private final MediaDrmCallback drmCallback;
     private final DemoPlayer player;
-    private final ManifestFetcher<SmoothStreamingManifest> manifestFetcher;
+    private final ManifestFetcher<MediaPresentationDescription> manifestFetcher;
+    private final UriDataSource manifestDataSource;
 
     private boolean canceled;
+    private MediaPresentationDescription manifest;
+    private long elapsedRealtimeOffset;
 
     private String proxyHost;
     private int proxyPort;
-    private Map<String, String> headers;
 
     public AsyncRendererBuilder(Context context, Map<String, String> headers, String url,
         MediaDrmCallback drmCallback, DemoPlayer player, String proxyHost, int proxyPort) {
       this.context = context;
+      this.headers = headers;
       this.drmCallback = drmCallback;
       this.player = player;
-      SmoothStreamingManifestParser parser = new SmoothStreamingManifestParser();
-      manifestFetcher = new ManifestFetcher<>(url, new DefaultHttpDataSource(headers.get("User-Agent"), null),
-          parser);
+      MediaPresentationDescriptionParser parser = new MediaPresentationDescriptionParser();
+      manifestDataSource = new DefaultUriDataSource(context, headers.get("User-Agent"));
+      manifestFetcher = new ManifestFetcher<>(url, manifestDataSource, parser);
 
       this.proxyHost = proxyHost;
       this.proxyPort = proxyPort;
-      this.headers = headers;
     }
 
     public void init() {
@@ -135,35 +148,77 @@ public class SmoothStreamingRendererBuilder implements RendererBuilder {
     }
 
     @Override
-    public void onSingleManifestError(IOException exception) {
+    public void onSingleManifest(MediaPresentationDescription manifest) {
       if (canceled) {
         return;
       }
 
-      player.onRenderersError(exception);
+      this.manifest = manifest;
+      if (manifest.dynamic && manifest.utcTiming != null) {
+        UtcTimingElementResolver.resolveTimingElement(manifestDataSource, manifest.utcTiming,
+            manifestFetcher.getManifestLoadCompleteTimestamp(), this);
+      } else {
+        buildRenderers();
+      }
     }
 
     @Override
-    public void onSingleManifest(SmoothStreamingManifest manifest) {
+    public void onSingleManifestError(IOException e) {
       if (canceled) {
         return;
       }
 
+      player.onRenderersError(e);
+    }
+
+    @Override
+    public void onTimestampResolved(UtcTimingElement utcTiming, long elapsedRealtimeOffset) {
+      if (canceled) {
+        return;
+      }
+
+      this.elapsedRealtimeOffset = elapsedRealtimeOffset;
+      buildRenderers();
+    }
+
+    @Override
+    public void onTimestampError(UtcTimingElement utcTiming, IOException e) {
+      if (canceled) {
+        return;
+      }
+
+      Log.e(TAG, "Failed to resolve UtcTiming element [" + utcTiming + "]", e);
+      // Be optimistic and continue in the hope that the device clock is correct.
+      buildRenderers();
+    }
+
+    private void buildRenderers() {
+      Period period = manifest.getPeriod(0);
       Handler mainHandler = player.getMainHandler();
       LoadControl loadControl = new DefaultLoadControl(new DefaultAllocator(BUFFER_SEGMENT_SIZE));
       DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter(mainHandler, player);
 
+      boolean hasContentProtection = false;
+      for (int i = 0; i < period.adaptationSets.size(); i++) {
+        AdaptationSet adaptationSet = period.adaptationSets.get(i);
+        if (adaptationSet.type != AdaptationSet.TYPE_UNKNOWN) {
+          hasContentProtection |= adaptationSet.hasContentProtection();
+        }
+      }
+
       // Check drm support if necessary.
-      DrmSessionManager drmSessionManager = null;
-      if (manifest.protectionElement != null) {
+      boolean filterHdContent = false;
+      StreamingDrmSessionManager drmSessionManager = null;
+      if (hasContentProtection) {
         if (Util.SDK_INT < 18) {
           player.onRenderersError(
               new UnsupportedDrmException(UnsupportedDrmException.REASON_UNSUPPORTED_SCHEME));
           return;
         }
         try {
-          drmSessionManager = new StreamingDrmSessionManager(manifest.protectionElement.uuid,
+          drmSessionManager = StreamingDrmSessionManager.newWidevineInstance(
               player.getPlaybackLooper(), drmCallback, null, player.getMainHandler(), player);
+          filterHdContent = getWidevineSecurityLevel(drmSessionManager) != SECURITY_LEVEL_1;
         } catch (UnsupportedDrmException e) {
           player.onRenderersError(e);
           return;
@@ -173,9 +228,10 @@ public class SmoothStreamingRendererBuilder implements RendererBuilder {
       // Build the video renderer.
       DataSource videoDataSource = new DefaultUriDataSource(context, bandwidthMeter, headers,
               false, proxyHost, proxyPort);
-      ChunkSource videoChunkSource = new SmoothStreamingChunkSource(manifestFetcher,
-          DefaultSmoothStreamingTrackSelector.newVideoInstance(context, true, false),
-          videoDataSource, new AdaptiveEvaluator(bandwidthMeter), LIVE_EDGE_LATENCY_MS);
+      ChunkSource videoChunkSource = new DashChunkSource(manifestFetcher,
+          DefaultDashTrackSelector.newVideoInstance(context, true, filterHdContent),
+          videoDataSource, new AdaptiveEvaluator(bandwidthMeter), LIVE_EDGE_LATENCY_MS,
+          elapsedRealtimeOffset, mainHandler, player, DemoPlayer.TYPE_VIDEO);
       ChunkSampleSource videoSampleSource = new ChunkSampleSource(videoChunkSource, loadControl,
           VIDEO_BUFFER_SEGMENTS * BUFFER_SEGMENT_SIZE, mainHandler, player,
           DemoPlayer.TYPE_VIDEO);
@@ -186,9 +242,9 @@ public class SmoothStreamingRendererBuilder implements RendererBuilder {
       // Build the audio renderer.
       DataSource audioDataSource = new DefaultUriDataSource(context, bandwidthMeter, headers,
               false, proxyHost, proxyPort);
-      ChunkSource audioChunkSource = new SmoothStreamingChunkSource(manifestFetcher,
-          DefaultSmoothStreamingTrackSelector.newAudioInstance(),
-          audioDataSource, null, LIVE_EDGE_LATENCY_MS);
+      ChunkSource audioChunkSource = new DashChunkSource(manifestFetcher,
+          DefaultDashTrackSelector.newAudioInstance(), audioDataSource, null, LIVE_EDGE_LATENCY_MS,
+          elapsedRealtimeOffset, mainHandler, player, DemoPlayer.TYPE_AUDIO);
       ChunkSampleSource audioSampleSource = new ChunkSampleSource(audioChunkSource, loadControl,
           AUDIO_BUFFER_SEGMENTS * BUFFER_SEGMENT_SIZE, mainHandler, player,
           DemoPlayer.TYPE_AUDIO);
@@ -199,9 +255,9 @@ public class SmoothStreamingRendererBuilder implements RendererBuilder {
       // Build the text renderer.
       DataSource textDataSource = new DefaultUriDataSource(context, bandwidthMeter, headers,
               false, proxyHost, proxyPort);
-      ChunkSource textChunkSource = new SmoothStreamingChunkSource(manifestFetcher,
-          DefaultSmoothStreamingTrackSelector.newTextInstance(),
-          textDataSource, null, LIVE_EDGE_LATENCY_MS);
+      ChunkSource textChunkSource = new DashChunkSource(manifestFetcher,
+          DefaultDashTrackSelector.newTextInstance(), textDataSource, null, LIVE_EDGE_LATENCY_MS,
+          elapsedRealtimeOffset, mainHandler, player, DemoPlayer.TYPE_TEXT);
       ChunkSampleSource textSampleSource = new ChunkSampleSource(textChunkSource, loadControl,
           TEXT_BUFFER_SEGMENTS * BUFFER_SEGMENT_SIZE, mainHandler, player,
           DemoPlayer.TYPE_TEXT);
@@ -214,6 +270,12 @@ public class SmoothStreamingRendererBuilder implements RendererBuilder {
       renderers[DemoPlayer.TYPE_AUDIO] = audioRenderer;
       renderers[DemoPlayer.TYPE_TEXT] = textRenderer;
       player.onRenderers(renderers, bandwidthMeter);
+    }
+
+    private static int getWidevineSecurityLevel(StreamingDrmSessionManager sessionManager) {
+      String securityLevelProperty = sessionManager.getPropertyString("securityLevel");
+      return securityLevelProperty.equals("L1") ? SECURITY_LEVEL_1 : securityLevelProperty
+          .equals("L3") ? SECURITY_LEVEL_3 : SECURITY_LEVEL_UNKNOWN;
     }
 
   }

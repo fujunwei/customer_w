@@ -1,4 +1,4 @@
-package com.example.xwalkproxy;
+package org.example.xwalkembedded;
 
 import android.annotation.TargetApi;
 import android.content.Context;
@@ -13,11 +13,11 @@ import android.view.MenuItem;
 import android.view.Surface;
 
 //import org.example.player.ExoMediaPlayer;
-import com.example.player.DashRendererBuilder;
-import com.example.player.DemoPlayer;
-import com.example.player.ExtractorRendererBuilder;
-import com.example.player.HlsRendererBuilder;
-import com.example.player.SmoothStreamingRendererBuilder;
+import org.example.player.DashRendererBuilder;
+import org.example.player.DemoPlayer;
+import org.example.player.ExtractorRendererBuilder;
+import org.example.player.HlsRendererBuilder;
+import org.example.player.SmoothStreamingRendererBuilder;
 import org.xwalk.core.XWalkExMediaPlayer;
 import org.xwalk.core.XWalkView;
 

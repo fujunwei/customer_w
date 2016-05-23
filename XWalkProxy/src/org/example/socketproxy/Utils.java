@@ -1,4 +1,4 @@
-package com.example.socketproxy;
+package org.example.socketproxy;
 
 import java.io.BufferedReader;
 import java.io.File;

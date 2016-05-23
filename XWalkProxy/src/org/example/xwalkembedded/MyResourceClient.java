@@ -1,4 +1,4 @@
-package com.example.xwalkproxy;
+package org.example.xwalkembedded;
 
 import android.content.Context;
 import android.media.MediaPlayer;
@@ -8,8 +8,8 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
-import com.example.socketproxy.HttpGetProxy;
-import com.example.socketproxy.Utils;
+import org.example.socketproxy.HttpGetProxy;
+import org.example.socketproxy.Utils;
 import org.xwalk.core.XWalkResourceClient;
 import org.xwalk.core.XWalkView;
 import org.xwalk.core.internal.XWalkViewInternal;

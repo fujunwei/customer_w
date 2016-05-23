@@ -1,4 +1,4 @@
-package com.example.socketproxy;
+package org.example.socketproxy;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -9,7 +9,7 @@ import java.net.Proxy;
 import java.net.Socket;
 import java.net.SocketAddress;
 
-import com.example.socketproxy.Config.ProxyResponse;
+import org.example.socketproxy.Config.ProxyResponse;
 
 import android.util.Log;
 /**

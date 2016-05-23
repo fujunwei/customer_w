@@ -1,4 +1,4 @@
-package com.example.socketproxy;
+package org.example.socketproxy;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -8,8 +8,8 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.URI;
 
-import com.example.socketproxy.Config.ProxyRequest;
-import com.example.socketproxy.Config.ProxyResponse;
+import org.example.socketproxy.Config.ProxyRequest;
+import org.example.socketproxy.Config.ProxyResponse;
 
 import android.text.TextUtils;
 import android.util.Log;
