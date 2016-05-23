@@ -49,6 +49,8 @@ import com.google.android.exoplayer.util.Util;
 import com.google.android.exoplayer.util.VerboseLogUtil;
 
 import java.io.FileDescriptor;
+import java.net.URL;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -74,6 +76,8 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
     private String contentId;
     private String provider;
 
+    public static final String PROXY_HOST = "140.207.47.119";
+    public static final int PROXY_HTTP_PORT = 10010;
     private String proxyHost;
     private int proxyPort;
 
@@ -84,12 +88,12 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
     MediaPlayer.OnVideoSizeChangedListener mVideoSizeChangedListener;
     MediaPlayer.OnErrorListener mErrorListener;
 
-    SurfaceView mSurfaceView;
     XWalkView mXWalkView;
 
     private int mBufferedPercentage;
     private int mVideoWidth;
     private int mVideoHeight;
+    Map<String, String> mHeaders;
 
     public XWalkExoMediaPlayer(Context context, XWalkView xWalkView) {
         mContext = context;
@@ -110,17 +114,16 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
     @Override
     public void setSurface(Surface surface) {
         Log.d(TAG, "==== in setSurface ");
-
+        if (surface == null) {
+            Log.e(TAG, "==== Surface is null");
+            return;
+        }
         player.setSurface(surface);//mSurfaceView.getHolder().getSurface()
     }
 
     @Override
     public void setDataSource(Context context, Uri uri, Map<String, String> headers) {
-        Log.d(TAG, "==== in setDataSource ");
-        contentUri = uri;//Uri.parse("http://122.96.25.242:8088/war.mp4");//uri;
-        contentType = inferContentType(contentUri, "");
-        contentId = "Demo Testing".toLowerCase(Locale.US).replaceAll("\\s", "");
-        provider = "";
+        configurePlayingSource(uri, headers);
 
 //        new PrebufferData(uri.toString());
     }
@@ -131,8 +134,10 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
 //    }
 //
 //    @Override
-//    public void setDataSource (Context context, Uri uri) {
-//        // super.setDataSource(context, uri);
+//    public void setDataSource(Context context, Uri uri) {
+//        Map<String, String> headers = new HashMap<String, String>();
+//        headers.put("User-Agent", "Crosswalk");
+//        configurePlayingSource(uri, headers);
 //    }
 
     @Override
@@ -235,22 +240,31 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
         mVideoSizeChangedListener = listener;
     }
 
+    private void configurePlayingSource(Uri uri, Map<String, String> headers) {
+        Log.d(TAG, "==== in setDataSource ");
+        contentUri = uri;//Uri.parse("http://122.96.25.242:8088/war.mp4");//uri;
+        contentType = inferContentType(contentUri, "");
+        contentId = "Demo Testing".toLowerCase(Locale.US).replaceAll("\\s", "");
+        provider = "";
+
+        mHeaders = headers;
+    }
+
     // Internal methods
 
     private DemoPlayer.RendererBuilder getRendererBuilder() {
-        String userAgent = Util.getUserAgent(mContext, "ExoPlayerDemo");
         switch (contentType) {
             case Util.TYPE_SS:
-                return new SmoothStreamingRendererBuilder(mContext, userAgent, contentUri.toString(),
+                return new SmoothStreamingRendererBuilder(mContext, mHeaders, contentUri.toString(),
                         new SmoothStreamingTestMediaDrmCallback(), proxyHost, proxyPort);
             case Util.TYPE_DASH:
-                return new DashRendererBuilder(mContext, userAgent, contentUri.toString(),
+                return new DashRendererBuilder(mContext, mHeaders, contentUri.toString(),
                         new WidevineTestMediaDrmCallback(contentId, provider), proxyHost, proxyPort);
             case Util.TYPE_HLS:
-                return new HlsRendererBuilder(mContext, userAgent, contentUri.toString(),
+                return new HlsRendererBuilder(mContext, mHeaders, contentUri.toString(),
                         proxyHost, proxyPort);
             case Util.TYPE_OTHER:
-                return new ExtractorRendererBuilder(mContext, userAgent, contentUri,
+                return new ExtractorRendererBuilder(mContext, mHeaders, contentUri,
                         proxyHost, proxyPort);
             default:
                 throw new IllegalStateException("Unsupported type: " + contentType);
