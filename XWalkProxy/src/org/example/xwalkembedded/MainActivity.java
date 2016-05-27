@@ -192,5 +192,37 @@ public class MainActivity extends Activity implements AudioCapabilitiesReceiver.
         }
         return super.dispatchKeyEvent(event);
     }
+    
+    @Override
+    public void onStart() {
+        super.onStart();
+        onShown();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        onShown();
+    }
+
+    private void onShown() {
+        mXWalkExoMediaPlayer.setBackgrounded(false);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        onHidden();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        onHidden();
+    }
+
+    private void onHidden() {
+        mXWalkExoMediaPlayer.onHideCustomView();
+    }
 	
 }
