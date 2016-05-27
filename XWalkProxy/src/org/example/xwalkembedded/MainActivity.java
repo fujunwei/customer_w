@@ -6,11 +6,13 @@ import android.app.ActionBar;
 import android.app.Fragment;
 import android.os.Bundle;
 import android.os.Handler;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.os.Build;
 
 import org.xwalk.core.XWalkView;
@@ -24,6 +26,12 @@ public class MainActivity extends Activity implements AudioCapabilitiesReceiver.
 
     XWalkExoMediaPlayer mXWalkExoMediaPlayer;
     private AudioCapabilitiesReceiver audioCapabilitiesReceiver;
+    
+    private int mSystemUiFlag;
+    private View mDecorView;
+    private boolean mOriginalFullscreen;
+    private boolean mOriginalForceNotFullscreen;
+    private boolean mIsFullscreen = false;
     
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +47,13 @@ public class MainActivity extends Activity implements AudioCapabilitiesReceiver.
 		
 		audioCapabilitiesReceiver = new AudioCapabilitiesReceiver(this, this);
         audioCapabilitiesReceiver.register();
+        
+        mDecorView = this.getWindow().getDecorView();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            mSystemUiFlag = View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
+                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
+        }
 	}
 	
 	private Handler mHandler = new Handler() {
@@ -104,5 +119,78 @@ public class MainActivity extends Activity implements AudioCapabilitiesReceiver.
 			return rootView;
 		}
 	}
+	
+	public void onFullscreenToggled(boolean enterFullscreen) {
+        Activity activity = this;
+        if (enterFullscreen) {
+            if ((activity.getWindow().getAttributes().flags &
+                    WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN) != 0) {
+                mOriginalForceNotFullscreen = true;
+                activity.getWindow().clearFlags(
+                        WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+            } else {
+                mOriginalForceNotFullscreen = false;
+            }
+            if (!mIsFullscreen) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    mSystemUiFlag = mDecorView.getSystemUiVisibility();
+                    mDecorView.setSystemUiVisibility(
+                            View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
+                                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                                    View.SYSTEM_UI_FLAG_FULLSCREEN |
+                                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+                } else {
+                    if ((activity.getWindow().getAttributes().flags &
+                            WindowManager.LayoutParams.FLAG_FULLSCREEN) != 0) {
+                        mOriginalFullscreen = true;
+                    } else {
+                        mOriginalFullscreen = false;
+                        activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                    }
+                }
+                mIsFullscreen = true;
+
+//                appbar.setVisibility(View.INVISIBLE);
+                mXWalkView.setVisibility(View.INVISIBLE);
+            }
+        } else {
+            if (mOriginalForceNotFullscreen) {
+                activity.getWindow().addFlags(
+                        WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                mDecorView.setSystemUiVisibility(mSystemUiFlag);
+            } else {
+                // Clear the activity fullscreen flag.
+                if (!mOriginalFullscreen) {
+                    activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                }
+            }
+            mIsFullscreen = false;
+
+//            appbar.setVisibility(View.VISIBLE);
+            mXWalkView.setVisibility(View.VISIBLE);
+        }
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_UP &&
+                event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
+            // If there's navigation happens when app is fullscreen,
+            // the content will still be fullscreen after navigation.
+            // In such case, the back key will exit fullscreen first.
+            if (mIsFullscreen) {
+                mXWalkExoMediaPlayer.onHideCustomView();
+                return true;
+            } else if (mXWalkView.canGoBack()) {
+                mXWalkView.goBack();
+                return true;
+            }
+        }
+        return super.dispatchKeyEvent(event);
+    }
 	
 }
