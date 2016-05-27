@@ -206,7 +206,9 @@ public class MainActivity extends Activity implements AudioCapabilitiesReceiver.
     }
 
     private void onShown() {
-        mXWalkExoMediaPlayer.setBackgrounded(false);
+    	if (mXWalkExoMediaPlayer != null) {
+    		mXWalkExoMediaPlayer.setBackgrounded(false);
+    	}
     }
 
     @Override
@@ -222,7 +224,9 @@ public class MainActivity extends Activity implements AudioCapabilitiesReceiver.
     }
 
     private void onHidden() {
-        mXWalkExoMediaPlayer.onHideCustomView();
+    	if (mXWalkExoMediaPlayer != null) {
+    		mXWalkExoMediaPlayer.onHideCustomView();
+    	}
     }
 	
 }
