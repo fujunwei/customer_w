@@ -54,7 +54,11 @@ import com.google.android.exoplayer.util.MimeTypes;
 import com.google.android.exoplayer.util.Util;
 import com.google.android.exoplayer.util.VerboseLogUtil;
 
+import java.io.File;
 import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
@@ -101,11 +105,25 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
     private final int INVALID_ORIENTATION = -2;
     private int mPreOrientation = INVALID_ORIENTATION;
     boolean mCustomFullscreen;
+    boolean mSystemFullscreen;
 
     private int mBufferedPercentage;
     private int mVideoWidth;
     private int mVideoHeight;
     Map<String, String> mHeaders;
+
+    private File mTempFile;
+    private boolean mSystemMediaPlayer;
+    private MediaPlayer mMediaPlayer;
+
+    String getDuration = "var videos = document.getElementsByTagName(\"video\");" + "\n" +
+                            "var i;" + "\n" +
+                            "for (i = 0; i < videos.length; i++) {" + "\n" +
+                            "    videos[i].onplaying = function() {" + "\n" +
+                            "        alert(this.duration);" + "\n" +
+//                            "        window.xwalkExoPlayer.setDuration(this.duration);" + "\n" +
+                            "    };" + "\n" +
+                            "}";
 
     public XWalkExoMediaPlayer(Context context, XWalkView xWalkView) {
         mContext = context;
@@ -113,6 +131,16 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
         mediaController = new KeyCompatibleMediaController(context);
         mSurfaceView = new SurfaceView(context);
         mCustomFullscreen = false;
+        mSystemFullscreen = false;
+        mSystemMediaPlayer = false;
+    }
+
+    protected MediaPlayer getSystemMediaPlayer() {
+        if (mMediaPlayer == null) {
+            mMediaPlayer = new MediaPlayer();
+            Log.e(TAG, "Create a Android System Media Player");
+        }
+        return mMediaPlayer;
     }
 
     public void updateProxySetting(String host, int port) {
@@ -123,120 +151,196 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
     @Override
     public void prepareAsync() {
         Log.d(TAG, "==== in prepareAsync ");
-        preparePlayer(true);
-
-        // Default is custom full screen
-        if (!mCustomFullscreen) {
-            onShowCustomView(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-            mCustomFullscreen = true;
+        if (mSystemMediaPlayer) {
+            getSystemMediaPlayer().prepareAsync();
+        } else {
+            // Have prepared in setDataSourcegetMediaPlayer
+//        preparePlayer(true);
         }
     }
 
     @Override
     public void setSurface(Surface surface) {
         Log.d(TAG, "==== in setSurface ");
-//        if (surface == null) {
-//            Log.d(TAG, "==== surface destroy");
-//            player.setBackgrounded(true);
-//            mCustomFullscreen = false;
-//            return;
-//        }
-//
-//        // System Full screen
-//        if (!mCustomFullscreen) {
-//            player.setBackgrounded(false);
-//            player.setSurface(surface);//mSurfaceView.getHolder().getSurface()
-//        }
-//        xwalkSurface = surface;
+
+        if (mSystemMediaPlayer) {
+            getSystemMediaPlayer().setSurface(surface);
+        } else {
+            if (!mSystemFullscreen) {
+                return;
+            }
+            if (surface == null) {
+                Log.d(TAG, "==== surface destroy");
+                player.setBackgrounded(true);
+                return;
+            }
+
+            player.setBackgrounded(false);
+            player.setSurface(surface);//mSurfaceView.getHolder().getSurface()
+
+            xwalkSurface = surface;
+        }
     }
 
     @Override
     public void setDataSource(Context context, Uri uri, Map<String, String> headers) {
-        configurePlayingSource(uri, headers);
+        if (uri.getScheme().equals("file")) {
+            mSystemMediaPlayer = true;
+            try {
+                getSystemMediaPlayer().setDataSource(context, uri, headers);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            startExoPlayer(uri, headers);
+        }
 
 //        new PrebufferData(uri.toString());
     }
 
-//    @Override
-//    public void setDataSource (FileDescriptor fd, long offset, long length) {
-//        // super.setDataSource(fd, offset, length);
-//    }
-//
-//    @Override
-//    public void setDataSource (Context context, Uri uri) {
-//        Map<String, String> headers = new HashMap<String, String>();
-//        headers.put("User-Agent", "Crosswalk");
-//        configurePlayingSource(uri, headers);
-//    }
+    @Override
+    public void setDataSource(FileDescriptor fd, long offset, long length) {
+        if (mSystemMediaPlayer) {
+            try {
+                getSystemMediaPlayer().setDataSource(fd, offset, length);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Override
+    public void setDataSource (Context context, Uri uri) {
+        Log.d(TAG, "==== in setDataSource " + uri);
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("User-Agent", "Crosswalk");
+
+        // The data URI will be saved into cache temp.
+        // file:///data/data/org.example.xwalkembedded/cache/decoded577794378mediadata
+        if (uri.getScheme().equals("file")) {
+            mSystemMediaPlayer = true;
+            setSystemListener();
+            try {
+                getSystemMediaPlayer().setDataSource(context, uri);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            startExoPlayer(uri, headers);
+        }
+    }
 
     @Override
     public boolean isPlaying() {
-        Log.d(TAG, "==== in isPlaying " + (player == null ? false : player.isPlaying()));
-        return player == null ? false : player.isPlaying();
+        if (mSystemMediaPlayer) {
+            return getSystemMediaPlayer().isPlaying();
+        } else {
+            Log.d(TAG, "==== in isPlaying " + (player == null ? false : player.isPlaying()));
+            return player == null ? false : player.isPlaying();
+        }
     }
 
     @Override
     public int getVideoWidth() {
-        Log.d(TAG, "==== in getVideoWidth " + mVideoWidth);
-        return mVideoWidth;
+        if (mSystemMediaPlayer) {
+            return getSystemMediaPlayer().getVideoWidth();
+        } else {
+            Log.d(TAG, "==== in getVideoWidth " + mVideoWidth);
+            return mVideoWidth;
+        }
     }
 
     @Override
     public int getVideoHeight() {
-        Log.d(TAG, "==== in getVideoHeight " + mVideoHeight);
-        return mVideoHeight;
+        if (mSystemMediaPlayer) {
+            return getSystemMediaPlayer().getVideoHeight();
+        } else {
+            Log.d(TAG, "==== in getVideoHeight " + mVideoHeight);
+            return mVideoHeight;
+        }
     }
 
     @Override
     public int getCurrentPosition() {
+        if (mSystemMediaPlayer) {
+            return getSystemMediaPlayer().getCurrentPosition();
+        } else {
 //        Log.d(TAG, "==== in getCurrentPosition " + player.getBufferedPercentage());
-        if (mBufferedPercentage != player.getBufferedPercentage()) {
-            mBufferedPercentage = player.getBufferedPercentage();
-            mBufferingUpdateListener.onBufferingUpdate(null, mBufferedPercentage);
+            if (player != null && mBufferedPercentage != player.getBufferedPercentage()) {
+                mBufferedPercentage = player.getBufferedPercentage();
+                mBufferingUpdateListener.onBufferingUpdate(null, mBufferedPercentage);
+            }
+            return player == null ? 0 : (int) player.getCurrentPosition();
         }
-        return (int) player.getCurrentPosition();
     }
 
     @Override
     public int getDuration() {
-        Log.d(TAG, "==== in getDuration " + (int) player.getDuration());
-        return (int) player.getDuration();
+        if (mSystemMediaPlayer) {
+            return getSystemMediaPlayer().getDuration();
+        } else {
+            Log.d(TAG, "==== in getDuration " + (player == null ? 0 : (int) player.getDuration()));
+            return player == null ? 0 : (int) player.getDuration();
+        }
     }
 
     @Override
     public void release() {
         Log.d(TAG, "==== in release ");
-        releasePlayer();
+        if (mSystemMediaPlayer) {
+            getSystemMediaPlayer().release();
+            mMediaPlayer = null;
+        } else {
+            releasePlayer();
+        }
     }
 
     @Override
     public void setVolume(float volume1, float volume2) {
         Log.d(TAG, "==== in setVolume ");
+        if (mSystemMediaPlayer) {
+            getSystemMediaPlayer().setVolume(volume1, volume2);
+        }
     }
 
     @Override
     public void start() {
         Log.d(TAG, "==== in start ");
-        player.setPlayWhenReady(true);
+        if (mSystemMediaPlayer) {
+            getSystemMediaPlayer().start();
+        } else {
+            if (player == null) return;
+            player.setPlayWhenReady(true);
 
-        if (!mCustomFullscreen) {
-            onShowCustomView(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-            player.setSurface(mSurfaceView.getHolder().getSurface());
-            mCustomFullscreen = true;
+            if (!mCustomFullscreen && !mSystemFullscreen) {
+                onShowCustomView(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                player.setSurface(mSurfaceView.getHolder().getSurface());
+                mCustomFullscreen = true;
+            }
         }
     }
 
     @Override
     public void pause() {
         Log.d(TAG, "==== in pause ");
-        player.setPlayWhenReady(false);
+        if (mSystemMediaPlayer) {
+            getSystemMediaPlayer().pause();
+        } else {
+            if (player == null) return;
+            player.setPlayWhenReady(false);
+        }
     }
 
     @Override
     public void seekTo(int msec) {
         Log.d(TAG, "==== in seekTo ");
-        player.seekTo(msec);
-        mSeekCompleteListener.onSeekComplete(null);
+        if (mSystemMediaPlayer) {
+            getSystemMediaPlayer().seekTo(msec);
+        } else {
+            if (player == null) return;
+            player.seekTo(msec);
+            mSeekCompleteListener.onSeekComplete(null);
+        }
     }
 
     @Override
@@ -275,14 +379,38 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
         mVideoSizeChangedListener = listener;
     }
 
-    private void configurePlayingSource(Uri uri, Map<String, String> headers) {
-        Log.d(TAG, "==== in setDataSource ");
+    private void setSystemListener() {
+        getSystemMediaPlayer().setOnBufferingUpdateListener(mBufferingUpdateListener);
+        getSystemMediaPlayer().setOnCompletionListener(mCompletionListener);
+        getSystemMediaPlayer().setOnErrorListener(mErrorListener);
+        getSystemMediaPlayer().setOnPreparedListener(mPreparedListener);
+        getSystemMediaPlayer().setOnSeekCompleteListener(mSeekCompleteListener);
+        getSystemMediaPlayer().setOnVideoSizeChangedListener(mVideoSizeChangedListener);
+    }
+
+    private void startExoPlayer(Uri uri, Map<String, String> headers) {
+        Log.d(TAG, "==== in setDataSource " + uri);
         contentUri = uri;//Uri.parse("http://122.96.25.242:8088/war.mp4");//uri;
         contentType = inferContentType(contentUri, "");
         contentId = "Demo Testing".toLowerCase(Locale.US).replaceAll("\\s", "");
         provider = "";
 
         mHeaders = headers;
+
+        mSystemMediaPlayer = false;
+        // Release exoplayer to play new uri
+        if (player != null) {
+            releasePlayer();
+        }
+        // Prepare exoplayer
+        preparePlayer(true);
+
+        // Default is custom full screen
+        if (!mCustomFullscreen && !mSystemFullscreen) {
+            onShowCustomView(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+            mCustomFullscreen = true;
+        }
+        mXWalkView.evaluateJavascript(getDuration, null);
     }
 
     // Internal methods
@@ -544,7 +672,7 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
     }
 
     private Activity addContentView(View view) {
-    	MainActivity activity = (MainActivity) getActivity();
+        XWalkWebViewActivity activity = (XWalkWebViewActivity) getActivity();
 
         if (activity != null) {
             activity.onFullscreenToggled(true);
@@ -617,7 +745,7 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
         }
 
         if (mCustomFullscreen) {
-            MainActivity activity = (MainActivity) getActivity();
+            XWalkWebViewActivity activity = (XWalkWebViewActivity) getActivity();
 
             if (activity != null) {
                 activity.onFullscreenToggled(false);
@@ -648,5 +776,50 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
         if (player != null) {
             player.setBackgrounded(background);
         }
+    }
+
+    private boolean copyFile(String src) {
+        FileOutputStream fos = null;
+        try {
+            mTempFile = File.createTempFile("decoded", "mediadata");
+            fos = new FileOutputStream(mTempFile);
+
+            File fromFile = new File(src);
+            FileInputStream fosfrom = new FileInputStream(fromFile);
+
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = fosfrom.read(buffer)) != -1) {
+                fos.write(buffer, 0, len);
+            }
+            fosfrom.close();
+            return true;
+        } catch (IOException e) {
+            return false;
+        } finally {
+            try {
+                if (fos != null) fos.close();
+            } catch (IOException e) {
+                // Can't do anything.
+            }
+        }
+    }
+
+    private void deleteFile() {
+        if (mTempFile == null) return;
+        if (!mTempFile.delete()) {
+            // File will be deleted when MediaPlayer releases its handler.
+            Log.e(TAG, "Failed to delete temporary file: " + mTempFile);
+            assert (false);
+        }
+    }
+
+    public void setDuration(int duration) {
+        Log.d(TAG, "====evaluate from js " + duration);
+        player.getPlayerControl().setDuration(duration);
+    }
+
+    public void resetSystemFullscreen() {
+        mSystemFullscreen = !mSystemFullscreen;
     }
 }
