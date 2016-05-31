@@ -1,11 +1,14 @@
 package org.example.xwalkembedded;
 
+import java.io.InputStream;
+
 import android.app.Activity;
 
 import android.app.ActionBar;
 import android.app.Fragment;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -15,6 +18,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.os.Build;
 
+import org.xwalk.core.XWalkResourceClient;
 import org.xwalk.core.XWalkView;
 import com.google.android.exoplayer.audio.AudioCapabilities;
 import com.google.android.exoplayer.audio.AudioCapabilitiesReceiver;
@@ -72,6 +76,14 @@ public class XWalkWebViewActivity extends Activity implements AudioCapabilitiesR
 	            mXWalkView.setExMediaPlayer(mXWalkExoMediaPlayer);
 	            
 				mXWalkView.load("file:///android_asset/index.html", null);
+				
+				mXWalkView.setResourceClient(new XWalkResourceClient(mXWalkView) {
+		            @Override
+		            public void onDocumentLoadedInFrame(XWalkView view, long frameId) {
+		                Log.d(TAG, "=====in onDocumentLoadedInFrame");
+		                mXWalkView.evaluateJavascript(getFromAssets("video.js"), null);
+		            }
+		        });
 			}
 		}
 	};
@@ -229,6 +241,25 @@ public class XWalkWebViewActivity extends Activity implements AudioCapabilitiesR
     	if (mXWalkExoMediaPlayer != null) {
     		mXWalkExoMediaPlayer.onHideCustomView();
     	}
+    }
+    
+    public String getFromAssets(String fileName){
+        String result = "";
+        try {
+            InputStream in = getResources().getAssets().open(fileName);
+            //获取文件的字节数
+            int lenght = in.available();
+            //创建byte数组
+            byte[]  buffer = new byte[lenght];
+            //将文件中的数据读到byte数组中
+            in.read(buffer);
+//            result = EncodingUtils.getString(buffer, ENCODING);
+            result = new String(buffer);
+//            Log.d(TAG, "======getFromAssets " + result);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
     }
 	
 }
