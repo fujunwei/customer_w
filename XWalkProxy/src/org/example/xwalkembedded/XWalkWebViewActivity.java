@@ -13,6 +13,7 @@ import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -29,6 +30,7 @@ public class XWalkWebViewActivity extends Activity implements AudioCapabilitiesR
     private final static int LOAD_URL = 100;
 
     XWalkExoMediaPlayer mXWalkExoMediaPlayer;
+    private SurfaceView surfaceView;
     private AudioCapabilitiesReceiver audioCapabilitiesReceiver;
     
     private int mSystemUiFlag;
@@ -65,13 +67,15 @@ public class XWalkWebViewActivity extends Activity implements AudioCapabilitiesR
         public void handleMessage(android.os.Message msg) {  
 			if(msg.what == LOAD_URL) {
 				mXWalkView = (XWalkView) findViewById(R.id.xwalkWebView);
+				surfaceView = (SurfaceView) findViewById(R.id.surface_view);
 				
 				String[] a = {"*.intel.com"};
 	            mXWalkView.proxySettingsChanged("122.96.25.242", 9399, "", a);
 //		        mXWalkView.setResourceClient(new MyResourceClient(mXWalkView));
 	            
 	            // ExoMediaPlayer
-	            mXWalkExoMediaPlayer = new XWalkExoMediaPlayer(XWalkWebViewActivity.this, mXWalkView);
+	            mXWalkExoMediaPlayer = new XWalkExoMediaPlayer(XWalkWebViewActivity.this, mXWalkView, surfaceView);
+	            mXWalkView.addJavascriptInterface(mXWalkExoMediaPlayer, "xwalkExoPlayer");
 	            mXWalkExoMediaPlayer.updateProxySetting("140.207.47.119", 10010);
 	            mXWalkView.setExMediaPlayer(mXWalkExoMediaPlayer);
 	            
@@ -238,9 +242,11 @@ public class XWalkWebViewActivity extends Activity implements AudioCapabilitiesR
     }
 
     private void onHidden() {
-    	if (mXWalkExoMediaPlayer != null) {
-    		mXWalkExoMediaPlayer.onHideCustomView();
-    	}
+    	if (mIsFullscreen) {
+            mXWalkExoMediaPlayer.onHideCustomView();
+        } else {
+            mXWalkExoMediaPlayer.setBackgrounded(true);
+        }
     }
     
     public String getFromAssets(String fileName){
