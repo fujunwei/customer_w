@@ -23,6 +23,8 @@ import org.xwalk.core.XWalkResourceClient;
 import org.xwalk.core.XWalkView;
 import com.google.android.exoplayer.audio.AudioCapabilities;
 import com.google.android.exoplayer.audio.AudioCapabilitiesReceiver;
+import android.widget.Button;
+import android.widget.ProgressBar;
 
 public class XWalkWebViewActivity extends Activity implements AudioCapabilitiesReceiver.Listener {
 	private XWalkView mXWalkView;
@@ -31,6 +33,8 @@ public class XWalkWebViewActivity extends Activity implements AudioCapabilitiesR
 
     XWalkExoMediaPlayer mXWalkExoMediaPlayer;
     private SurfaceView surfaceView;
+    private ProgressBar waitingBar;
+    private Button replayButton;
     private AudioCapabilitiesReceiver audioCapabilitiesReceiver;
     
     private int mSystemUiFlag;
@@ -68,6 +72,16 @@ public class XWalkWebViewActivity extends Activity implements AudioCapabilitiesR
 			if(msg.what == LOAD_URL) {
 				mXWalkView = (XWalkView) findViewById(R.id.xwalkWebView);
 				surfaceView = (SurfaceView) findViewById(R.id.surface_view);
+				
+				waitingBar = (ProgressBar) findViewById(R.id.waitingBar);
+		        replayButton = (Button) findViewById(R.id.replayButton);
+		        replayButton.setOnClickListener(new View.OnClickListener() {
+		            public void onClick(View v) {
+		                // Do something in response to button click
+		                mXWalkView.evaluateJavascript("replayVideo()", null);
+		                mXWalkExoMediaPlayer.setPlayWhenReady(true);
+		            }
+		        });
 				
 				String[] a = {"*.intel.com"};
 	            mXWalkView.proxySettingsChanged("122.96.25.242", 9399, "", a);
@@ -268,4 +282,23 @@ public class XWalkWebViewActivity extends Activity implements AudioCapabilitiesR
         return result;
     }
 	
+    public void showWaitingBar(boolean show) {
+        // Show waiting progress bar
+        if (show) {
+            waitingBar.setVisibility(View.VISIBLE);
+            showReplayButton(false);
+        } else {
+            waitingBar.setVisibility(View.INVISIBLE);
+        }
+    }
+
+    public void showReplayButton(boolean show) {
+        // Show waiting progress bar
+        if (show) {
+            replayButton.setVisibility(View.VISIBLE);
+            showWaitingBar(false);
+        } else {
+            replayButton.setVisibility(View.INVISIBLE);
+        }
+    }
 }
