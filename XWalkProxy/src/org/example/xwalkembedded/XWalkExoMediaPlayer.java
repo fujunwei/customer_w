@@ -92,7 +92,6 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
     private int contentType;
     private String contentId;
     private String provider;
-    private long playerPosition;
 
     public static final String PROXY_HOST = "140.207.47.119";
     public static final int PROXY_HTTP_PORT = 10010;
@@ -132,7 +131,6 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
         mSurfaceView = surfaceView;//new SurfaceView(context);
         mEnableFullscreen = true;
         mEnableExoPlayer = true;
-        playerPosition = 0;
     }
 
     private void startSystemMediaPlayer() {
@@ -447,7 +445,6 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
             player = new DemoPlayer(getRendererBuilder());
             player.addListener(this);
             player.setMetadataListener(this);
-            player.seekTo(playerPosition);
             playerNeedsPrepare = true;
             mediaController.setMediaPlayer(player.getPlayerControl());
             mediaController.setEnabled(true);
@@ -471,7 +468,6 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
         if (player != null) {
 //            debugViewHelper.stop();
 //            debugViewHelper = null;
-            playerPosition = player.getCurrentPosition();
             player.getPlayerControl().release();
             player.release();
             player = null;
@@ -487,7 +483,6 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
     public void onStateChanged(boolean playWhenReady, int playbackState) {
         if (playbackState == ExoPlayer.STATE_ENDED) {
             showControls();
-            showReplayButton(true);
         }
         String text = "playWhenReady=" + playWhenReady + ", playbackState=";
         switch(playbackState) {
@@ -560,8 +555,6 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
         mErrorListener.onError(null, MediaPlayer.MEDIA_ERROR_SERVER_DIED, MediaPlayer.MEDIA_ERROR_TIMED_OUT);
         showWaitingBar(false);
         showReplayButton(true);
-        // Hide Div
-//        mXWalkView.evaluateJavascript("hideDiv(playingIndex)", null);
     }
 
     @Override
@@ -786,6 +779,16 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
     }
 
     @JavascriptInterface
+    public void showReplayButtonFromJS() {
+        ThreadUtils.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                showReplayButton(true);
+            }
+        });
+    }
+
+    @JavascriptInterface
     public void printWithJavaScript(String log) {
         Log.d(TAG, "====printWithJavaScript " + log);
     }
@@ -830,12 +833,10 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
         if (player != null) {
 //            player.setSurface(xwalkSurface);
             player.setBackgrounded(false);
-            player.setPlayWhenReady(false);
         } else if (mMediaPlayer != null) {
 //            mMediaPlayer.setSurface(xwalkSurface);
-//            mMediaPlayer.pause();
-            mXWalkView.evaluateJavascript("pauseVideo()", null);
         }
+        mXWalkView.evaluateJavascript("pauseVideo()", null);
     }
 
     public void setBackgrounded(boolean background) {
@@ -846,7 +847,7 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
 
     public void replayVideo() {
         if (player != null) {
-            player.setPlayWhenReady(true);
+            preparePlayer(true);
         } else if (mMediaPlayer != null) {
             mMediaPlayer.start();
         }
@@ -957,6 +958,7 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
         @Override
         public void onSeekComplete(MediaPlayer mp) {
             Log.d(TAG, "=====onSeekComplete ");
+            showWaitingBar(false);
             mSeekCompleteListener.onSeekComplete(mp);
         }
 
@@ -970,7 +972,6 @@ public class XWalkExoMediaPlayer extends XWalkExMediaPlayer implements SurfaceHo
         public void onCompletion(MediaPlayer mp) {
             Log.d(TAG, "=====onCompletion ");
             mCompletionListener.onCompletion(mp);
-            showReplayButton(true);
         }
 
         @Override

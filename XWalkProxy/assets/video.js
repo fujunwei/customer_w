@@ -14,6 +14,7 @@ function listenVideos() {
         videos[i].onended = function() {
             //Remove DIV
             hideDiv(getVideoIndex(this));
+            window.xwalkExoPlayer.showReplayButtonFromJS();
             window.xwalkExoPlayer.printWithJavaScript("onended");
         };
         videos[i].onerror = function() {

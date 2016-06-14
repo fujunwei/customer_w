@@ -80,6 +80,7 @@ public class XWalkWebViewActivity extends Activity implements AudioCapabilitiesR
 		                // Do something in response to button click
 		                mXWalkView.evaluateJavascript("replayVideo()", null);
 		                mXWalkExoMediaPlayer.replayVideo();
+		                replayButton.setVisibility(View.INVISIBLE);
 		            }
 		        });
 				
