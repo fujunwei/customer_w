@@ -20,9 +20,12 @@ import android.view.WindowManager;
 import android.os.Build;
 
 import org.xwalk.core.XWalkResourceClient;
+import org.xwalk.core.XWalkUIClient;
 import org.xwalk.core.XWalkView;
 import com.google.android.exoplayer.audio.AudioCapabilities;
 import com.google.android.exoplayer.audio.AudioCapabilitiesReceiver;
+
+import android.webkit.ValueCallback;
 import android.widget.Button;
 import android.widget.ProgressBar;
 
@@ -78,7 +81,7 @@ public class XWalkWebViewActivity extends Activity implements AudioCapabilitiesR
 		        replayButton.setOnClickListener(new View.OnClickListener() {
 		            public void onClick(View v) {
 		                // Do something in response to button click
-		                mXWalkView.evaluateJavascript("replayVideo()", null);
+		            	mXWalkView.evaluateJavascript("xwalk.replayVideo()", null);
 		                mXWalkExoMediaPlayer.replayVideo();
 		                replayButton.setVisibility(View.INVISIBLE);
 		            }
@@ -100,7 +103,7 @@ public class XWalkWebViewActivity extends Activity implements AudioCapabilitiesR
 		            @Override
 		            public void onDocumentLoadedInFrame(XWalkView view, long frameId) {
 		                Log.d(TAG, "=====in onDocumentLoadedInFrame");
-		                mXWalkView.evaluateJavascript(getFromAssets("video.js"), null);
+		                listenXWalkVideos();
 		            }
 		        });
 			}
@@ -281,6 +284,19 @@ public class XWalkWebViewActivity extends Activity implements AudioCapabilitiesR
             e.printStackTrace();
         }
         return result;
+    }
+    
+    private void listenXWalkVideos() {
+        mXWalkView.evaluateJavascript("xwalk.listenedXWalkVideos", new ValueCallback<String>() {
+            @Override
+            public void onReceiveValue(String value) {
+                if (!value.equals("true")) {
+                    mXWalkView.evaluateJavascript(getFromAssets("video.js"), null);
+                    Log.d(TAG, "=====Evaluate javascripte to listen the video element ");
+                }
+                Log.d(TAG, "=====the version of exoplayer video.js is " + value);
+            }
+        });
     }
 	
     public void showWaitingBar(boolean show) {
